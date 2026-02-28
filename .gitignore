@@ -26,6 +26,8 @@ build/
 bin/
 *.exe
 *.test
+/api
+/worker
 
 # PHP / Composer
 /vendor/
