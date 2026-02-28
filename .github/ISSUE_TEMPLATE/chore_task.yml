@@ -1,0 +1,17 @@
+name: Chore / Task
+description: 雑務・改善タスク
+title: "[Chore]: "
+labels: ["chore"]
+body:
+  - type: textarea
+    id: task
+    attributes:
+      label: タスク
+      description: 何をする？
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: Doneの定義
+      description: 何ができたら完了？

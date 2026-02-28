@@ -1,0 +1,87 @@
+name: Document Sync Check
+
+on:
+  pull_request:
+    paths:
+      - 'README.md'
+      - 'SECURITY.md'
+      - '.claude/**'
+      - 'claude-ext/docs/**'
+      - 'scripts/**'
+      - '.github/workflows/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/PULL_REQUEST_TEMPLATE.md'
+      - '.github/dependabot.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  doc-sync-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Shell script syntax check
+        run: bash -n scripts/pr.sh scripts/pr-finish.sh
+
+      - name: Required workflows exist
+        run: |
+          missing=()
+          for f in ci.yml dependency-review.yml pr-summary.yml codex-review-comment.yml; do
+            if [ ! -f ".github/workflows/$f" ]; then
+              missing+=("$f")
+            fi
+          done
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Missing workflows: ${missing[*]}"
+            exit 1
+          fi
+          echo "All required workflows exist."
+
+      - name: LLM policy present in README and SECURITY
+        run: |
+          errors=()
+          if ! grep -qi 'LLM.*外部送信\|LLM.*External.*Transmission\|LLM.*Policy' README.md; then
+            errors+=("README.md: LLM外部送信ポリシーの記載が見つかりません")
+          fi
+          if ! grep -qi 'LLM.*External.*Transmission\|LLM.*Policy\|LLM.*外部送信' SECURITY.md; then
+            errors+=("SECURITY.md: LLM外部送信ポリシーの記載が見つかりません")
+          fi
+          if [ ${#errors[@]} -gt 0 ]; then
+            for e in "${errors[@]}"; do
+              echo "::error::$e"
+            done
+            exit 1
+          fi
+          echo "LLM policy found in both README.md and SECURITY.md."
+
+      - name: README directory structure matches actual files
+        run: |
+          missing=()
+          files=(
+            ".github/CODEOWNERS"
+            ".github/ISSUE_TEMPLATE/bug_report.yml"
+            ".github/ISSUE_TEMPLATE/feature_request.yml"
+            ".github/ISSUE_TEMPLATE/chore_task.yml"
+            ".github/PULL_REQUEST_TEMPLATE.md"
+            ".github/dependabot.yml"
+            ".github/workflows/ci.yml"
+            ".github/workflows/dependency-review.yml"
+            ".github/workflows/pr-summary.yml"
+            ".github/workflows/codex-review-comment.yml"
+            "scripts/pr.sh"
+            "scripts/pr-finish.sh"
+            "README.md"
+            "SECURITY.md"
+          )
+          for f in "${files[@]}"; do
+            if [ ! -f "$f" ]; then
+              missing+=("$f")
+            fi
+          done
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::README記載のファイルが存在しません: ${missing[*]}"
+            exit 1
+          fi
+          echo "All files listed in README directory structure exist."

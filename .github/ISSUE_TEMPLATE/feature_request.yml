@@ -1,0 +1,28 @@
+name: Feature request
+description: 新機能の要望
+title: "[Feat]: "
+labels: ["feat"]
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: ゴール
+      description: 何を達成したい？
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: スコープ
+      description: やる/やらない
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 受け入れ条件（Doneの定義）
+      description: 例）APIが200を返す、テストが追加される、など
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: メモ

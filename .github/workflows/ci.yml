@@ -1,0 +1,101 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      php: ${{ steps.detect.outputs.php }}
+      go: ${{ steps.detect.outputs.go }}
+      python: ${{ steps.detect.outputs.python }}
+    steps:
+      - uses: actions/checkout@v6
+      - id: detect
+        run: |
+          php=false
+          go=false
+          python=false
+
+          if [ -f composer.json ]; then php=true; fi
+          if [ -f go.mod ]; then go=true; fi
+          if [ -f pyproject.toml ] || [ -f requirements.txt ]; then python=true; fi
+
+          echo "php=$php" >> $GITHUB_OUTPUT
+          echo "go=$go" >> $GITHUB_OUTPUT
+          echo "python=$python" >> $GITHUB_OUTPUT
+
+  php:
+    needs: detect
+    if: needs.detect.outputs.php == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+      - name: Install dependencies
+        run: |
+          if [ -f composer.json ]; then composer install --no-interaction --prefer-dist; fi
+      - name: Lint / Test (best-effort)
+        run: |
+          if [ -f vendor/bin/phpunit ]; then vendor/bin/phpunit; else echo "phpunit not found, skip"; fi
+
+  go:
+    needs: detect
+    if: needs.detect.outputs.go == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.26'
+      - name: Test
+        run: |
+          go test ./... -count=1
+
+  python:
+    needs: detect
+    if: needs.detect.outputs.python == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+      - name: Install dependencies
+        run: |
+          python -m pip install -U pip
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          fi
+
+          if [ -f pyproject.toml ]; then
+            if ! pip install -e ".[test]"; then
+              echo "Could not install test extras; retrying without extras."
+              if ! pip install -e .; then
+                echo "Project install failed; continuing with explicit test runner install."
+              fi
+            fi
+          fi
+      - name: Test
+        run: |
+          has_pytest_layout=false
+
+          if [ -d tests ] || [ -f pytest.ini ] || [ -f conftest.py ]; then
+            has_pytest_layout=true
+          fi
+
+          if [ -f pyproject.toml ] && grep -Eq '^\[tool\.pytest(\.ini_options)?\]' pyproject.toml; then
+            has_pytest_layout=true
+          fi
+
+          if [ "$has_pytest_layout" = "true" ]; then
+            python -m pip install -U pytest
+            python -m pytest -q
+          else
+            echo "No pytest layout detected. Skipping pytest."
+          fi

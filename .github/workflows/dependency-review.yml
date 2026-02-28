@@ -1,0 +1,23 @@
+name: Dependency Review
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - id: review
+        uses: actions/dependency-review-action@v4
+        continue-on-error: true
+      - name: Guide on failure
+        if: steps.review.outcome == 'failure'
+        run: |
+          echo "::warning::Dependency Review failed. Dependency Graph may not be enabled."
+          echo ""
+          echo "To enable, run:  gh api repos/${{ github.repository }}/vulnerability-alerts -X PUT"
+          echo "Or visit: https://github.com/${{ github.repository }}/settings/security_analysis"
