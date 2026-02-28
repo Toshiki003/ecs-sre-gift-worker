@@ -1,3 +1,3 @@
 module github.com/Toshiki003/ecs-sre-gift-worker
 
-go 1.25.4
+go 1.25

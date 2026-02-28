@@ -29,7 +29,7 @@ func main() {
 	})
 
 	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
-		// TODO: T-2.5 で DB接続確認を追加
+		// TODO: T-2.5 で DB接続確認を追加し、依存サービスが未接続の場合は 503 を返す
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"status":"ready"}`))
 	})
